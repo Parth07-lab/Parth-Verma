@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-brand-black text-brand-white font-body selection:bg-brand-blue selection:text-white antialiased overflow-x-hidden;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-wide;
+  }
+}
+
+.glassmorphism {
+  background: rgba(13, 13, 13, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glassmorphism-card {
+  background: rgba(30, 30, 30, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0D0D0D;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e1e1e;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #0066FF;
+}
+
+/* Input styles */
+.input-field {
+  @apply bg-brand-darkGray border border-white/10 rounded px-4 py-2 text-white outline-none focus:border-brand-blue transition-colors placeholder:text-brand-gray/60 w-full;
+}
+.btn-primary {
+  @apply bg-brand-blue hover:bg-brand-blue/90 text-white font-ui font-medium px-6 py-3 rounded transition-all transform active:scale-95 text-center flex items-center justify-center gap-2;
+}
+.btn-secondary {
+  @apply bg-transparent hover:bg-white/5 text-white border border-white/20 font-ui font-medium px-6 py-3 rounded transition-all active:scale-95 text-center flex items-center justify-center gap-2;
+}

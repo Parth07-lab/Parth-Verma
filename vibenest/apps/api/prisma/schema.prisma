@@ -1,0 +1,249 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String         @id @default(uuid())
+  name          String
+  email         String         @unique
+  phone         String?
+  passwordHash  String
+  emailVerified Boolean        @default(false)
+  provider      String         @default("local") // local, google
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  deletedAt     DateTime?
+  addresses     Address[]
+  orders        Order[]
+  reviews       Review[]
+  wishlists     Wishlist[]
+  notifications Notification[]
+  sessions      Session[]
+  
+  @@index([email])
+}
+
+model Address {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  line1     String
+  line2     String?
+  city      String
+  state     String
+  pincode   String
+  isDefault Boolean  @default(false)
+  orders    Order[]
+  
+  @@index([userId])
+}
+
+model Admin {
+  id           String     @id @default(uuid())
+  email        String     @unique
+  passwordHash String
+  role         String     // super_admin, product_manager, order_manager, support_executive
+  mfaSecret    String?
+  lastLogin    DateTime?
+  auditLogs    AuditLog[]
+  createdAt    DateTime   @default(now())
+  
+  @@index([email])
+}
+
+model Category {
+  id             String     @id @default(uuid())
+  name           String
+  slug           String     @unique
+  parentId       String?
+  parent         Category?  @relation("CategoryToCategory", fields: [parentId], references: [id], onDelete: SetNull)
+  subcategories  Category[] @relation("CategoryToCategory")
+  products       Product[]
+  
+  @@index([slug])
+  @@index([parentId])
+}
+
+model Product {
+  id          String           @id @default(uuid())
+  name        String
+  slug        String           @unique
+  sku         String           @unique
+  description String
+  material    String?
+  price       Float
+  discountPct Float            @default(0) // percentage discount
+  stock       Int              @default(0)
+  isActive    Boolean          @default(true)
+  categoryId  String
+  category    Category         @relation(fields: [categoryId], references: [id])
+  variants    ProductVariant[]
+  images      ProductImage[]
+  reviews     Review[]
+  wishlists   Wishlist[]
+  orderItems  OrderItem[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  deletedAt   DateTime?
+  
+  @@index([slug])
+  @@index([sku])
+  @@index([categoryId])
+}
+
+model ProductVariant {
+  id        String      @id @default(uuid())
+  productId String
+  product   Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  size      String
+  color     String
+  stock     Int         @default(0)
+  orderItems OrderItem[]
+  
+  @@index([productId])
+}
+
+model ProductImage {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  isPrimary Boolean  @default(false)
+  sortOrder Int      @default(0)
+  
+  @@index([productId])
+}
+
+model Order {
+  id                String      @id @default(uuid())
+  userId            String?
+  user              User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  status            String      @default("pending") // pending, confirmed, shipped, delivered, cancelled
+  totalAmount       Float
+  paymentStatus     String      @default("pending") // pending, paid, failed, refunded
+  shippingAddressId String
+  shippingAddress   Address     @relation(fields: [shippingAddressId], references: [id])
+  items             OrderItem[]
+  payment           Payment?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  deletedAt         DateTime?
+  
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id        String         @id @default(uuid())
+  orderId   String
+  order     Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product        @relation(fields: [productId], references: [id])
+  variantId String
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
+  qty       Int
+  unitPrice Float
+  
+  @@index([orderId])
+  @@index([productId])
+}
+
+model Payment {
+  id            String   @id @default(uuid())
+  orderId       String   @unique
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider      String   // upi, card, cod, netbanking
+  transactionId String?
+  amount        Float
+  status        String   @default("pending") // pending, success, failed
+  metadata      String?  // JSON stringified metadata
+  createdAt     DateTime @default(now())
+  
+  @@index([orderId])
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  rating    Int
+  body      String
+  isVerified Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  @@index([userId])
+  @@index([productId])
+  @@index([createdAt])
+}
+
+model Wishlist {
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  @@id([userId, productId])
+  @@index([userId])
+}
+
+model Coupon {
+  id            String   @id @default(uuid())
+  code          String   @unique
+  discountType  String   // percentage, fixed
+  value         Float
+  minOrderValue Float    @default(0)
+  usageLimit    Int?
+  usedCount     Int      @default(0)
+  expiresAt     DateTime
+  createdAt     DateTime @default(now())
+  
+  @@index([code])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // order_update, promo, alert
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  @@index([userId])
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  device    String?
+  ip        String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  
+  @@index([userId])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  adminId   String
+  admin     Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  action    String
+  entity    String
+  entityId  String?
+  before    String?  // JSON string before change
+  after     String?  // JSON string after change
+  ip        String?
+  createdAt DateTime @default(now())
+  
+  @@index([adminId])
+}

@@ -1,0 +1,33 @@
+name: VibeNest CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install Monorepo Dependencies
+      run: npm install
+
+    - name: Build Shared Packages
+      run: npm run build --workspace=packages/shared-types || echo "No custom build for shared-types"
+
+    - name: Compile Backend API
+      run: npm run build --workspace=apps/api
+
+    - name: Compile Next.js Frontend
+      run: npm run build --workspace=apps/web
